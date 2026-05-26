@@ -126,3 +126,32 @@ void initializeNewBoard(char board[MAX_ROWS][MAX_COLS], int boardSize)
         }
     }
 }
+
+/*
+-----------------------------------------
+DEVELOPER: ELLY MAZLIN
+TASK     : temporary test grid display
+NOTE     : to see if the formulas work
+-----------------------------------------
+*/
+
+void debugDisplayBoard(char board[MAX_ROWS][MAX_COLS], int boardSize)
+{
+    cout << endl;
+
+    for (int c = 1; c <= boardSize; c++) cout << " " << c << "  ";
+    cout << endl;
+
+    for (int r = 0; r < boardSize; r++)
+    {
+        char rowLetter = 'A' + r;
+        cout << rowLetter << " ";
+
+        for (int c = 0; c < boardSize; c++)
+        {
+            cout << "[" << board[r][c] << "] ";
+        }
+
+        cout << endl;
+    }
+}
