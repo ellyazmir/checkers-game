@@ -140,14 +140,23 @@ void debugDisplayBoard(char board[MAX_ROWS][MAX_COLS], int boardSize)
 {
     cout << endl;
 
-    for (int c = 1; c <= boardSize; c++) cout << " " << c << "  ";
+    // 1. print top margin spacing to align with the row letters
+    cout << "    ";
+
+    // 2. loop to print column headers (emp:  1   2   3   4...)
+    for (int c = 1; c <= boardSize; c++)
+    {
+        cout << c << "   "; // print num followed by 3 spaces
+    }
     cout << endl;
 
+    // 3. loop through rows
     for (int r = 0; r < boardSize; r++)
     {
         char rowLetter = 'A' + r;
-        cout << rowLetter << " ";
+        cout << rowLetter << "  "; // letter followed by 2 spaces to align with grid
 
+        // 4. loop through columns to print the actual board slots
         for (int c = 0; c < boardSize; c++)
         {
             cout << "[" << board[r][c] << "] ";
