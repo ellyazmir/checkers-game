@@ -54,3 +54,34 @@ int main()
 
     return 0;
 }
+
+/*
+---------------------------------------------------------------------------------
+DEVELOPER: ELLY MAZLIN
+TASK     : translate coordinate strings (exp: "D2") into valid 0-indexed values
+---------------------------------------------------------------------------------
+*/
+
+bool convertInputToCoordinates(string input, int &row, int &col, int boardSize)
+{
+    // validation: ensure the string has exactly a row character & column number (length = 2)
+    if (input.length() != 2)
+    {
+        return false;
+    }
+    
+    // convert char case using toupper from <cctype>
+    char letter = toupper(input[0]); 
+    row = letter - 'A'; // math char mapping ('A' becomes 0, 'B' becomes 1...)
+    
+    char numChar = input[1];
+    col = numChar - '1'; // math char mapping ('1' becomes 0, '2' becomes 1...)
+    
+    // boundary assessment: ensure the coordinates exist on the active board size
+    if (row < 0 || row >= boardSize || col < 0 || col >= boardSize)
+    {
+        return false;
+    }
+    
+    return true; 
+}
