@@ -28,14 +28,16 @@ int main()
     initializeNewBoard(testBoard, testBoardSize);
     debugDisplayBoard(testBoard, testBoardSize);
 
+    cout << endl << endl;
     cout << "---Testing Coordinate Translation Logic---" << endl;
     string userInput;
     int targetRow = 0, targetCol = 0;
 
     // simple loop to test inputs like "D2", "A3" or "b1"
     for (int i = 0; i < 3; i++)
-    {
-        cout << "Enter a coordinate to translate (e.g., D2): ";
+    {   
+        cout << endl;
+        cout << "Enter a coordinate to translate (exp: D2): ";
         cin  >> userInput;
 
         if (convertInputToCoordinates(userInput, targetRow, targetCol, testBoardSize))
