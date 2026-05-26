@@ -16,12 +16,12 @@ func prototypes
 
 bool convertInputToCoordinates(string input, int &row, int &col, int boardSize);
 void initializeNewBoard(char board[MAX_ROWS][MAX_COLS], int boardSize);
-void debugDisplayBoard(char board[MAX_ROWS][MAX_COLS], int boardSize); 
+void debugDisplayBoard(char board[MAX_ROWS][MAX_COLS], int boardSize);
 
 int main()
 {
     // TEMPORARY SETUP: simulate a chosen board size (exp: 6x6, 8x8 or 10x10)
-    int  testBoardSize = 6; 
+    int  testBoardSize = 6;
     char testBoard[MAX_ROWS][MAX_COLS];
 
     cout << "---Testing Piece Placement Logic---" << endl;
@@ -40,15 +40,16 @@ int main()
 
         if (convertInputToCoordinates(userInput, targetRow, targetCol, testBoardSize))
         {
-            cout << "Valid! '" << userInput << "' maps to -> Row: " << targetRow 
+            cout << "Valid! '" << userInput << "' maps to -> Row: " << targetRow
                  << ", Col: " << targetCol << endl;
             cout << "Piece currently at that position: '" << testBoard[targetRow][targetCol] << "'" << endl;
         }
-        
+
         else
         {
             cout << "Invalid coordinate! It's either poorly formatted or out of bounds." << endl;
         }
+
         cout << endl;
     }
 
@@ -69,21 +70,21 @@ bool convertInputToCoordinates(string input, int &row, int &col, int boardSize)
     {
         return false;
     }
-    
+
     // convert char case using toupper from <cctype>
-    char letter = toupper(input[0]); 
+    char letter = toupper(input[0]);
     row = letter - 'A'; // math char mapping ('A' becomes 0, 'B' becomes 1...)
-    
+
     char numChar = input[1];
     col = numChar - '1'; // math char mapping ('1' becomes 0, '2' becomes 1...)
-    
+
     // boundary assessment: ensure the coordinates exist on the active board size
     if (row < 0 || row >= boardSize || col < 0 || col >= boardSize)
     {
         return false;
     }
-    
-    return true; 
+
+    return true;
 }
 
 /*
@@ -100,7 +101,7 @@ void initializeNewBoard(char board[MAX_ROWS][MAX_COLS], int boardSize)
     {
         for (int j = 0; j < MAX_COLS; j++)
         {
-            board[i][j] = ' '; 
+            board[i][j] = ' ';
         }
     }
 
