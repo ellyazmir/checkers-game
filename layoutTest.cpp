@@ -85,3 +85,44 @@ bool convertInputToCoordinates(string input, int &row, int &col, int boardSize)
     
     return true; 
 }
+
+/*
+------------------------------------------------------------------------------
+DEVELOPER: ELLY MAZLIN
+TASK     : auto place 'O' & 'X' pieces onto valid alternating dark diagonals
+------------------------------------------------------------------------------
+*/
+
+void initializeNewBoard(char board[MAX_ROWS][MAX_COLS], int boardSize)
+{
+    // 1. clear entire array container safely with empty spaces
+    for (int i = 0; i < MAX_ROWS; i++)
+    {
+        for (int j = 0; j < MAX_COLS; j++)
+        {
+            board[i][j] = ' '; 
+        }
+    }
+
+    // 2. loop through the active board boundaries to place initial checker pieces
+    for (int r = 0; r < boardSize; r++)
+    {
+        for (int c = 0; c < boardSize; c++)
+        {
+            // remainder evaluation: checker pieces only sit where row + col is odd
+            if ((r + c) % 2 == 1)
+            {
+                // P1 ('O') occupy the top 2 rows of the board
+                if (r == 0 || r == 1)
+                {
+                    board[r][c] = 'o';
+                }
+                // P2 ('X') occupy the bottom 2 rows of the board
+                else if (r == (boardSize - 2) || r == (boardSize - 1))
+                {
+                    board[r][c] = 'x';
+                }
+            }
+        }
+    }
+}
