@@ -1,3 +1,15 @@
+/*
+Program: layoutTest.cpp
+Course: CCP6114 Programming Fundamentals
+Lecture Class: TC2L 
+Tutorial Class: TT7L 
+Trimester: 2610
+Information: 252UC241RN ELLY MAZLIN BINTI MOHD AZMIR  ELLY.MAZLIN.MOHD1@student.mmu.edu.my        0126623767
+             261UC205J4 BRYAN WONG KAI JIE            BRYAN.WONG.KAI1@student.mmu.edu.my          0143331772
+             261UC2432G LIM GUAN XU                   LIM.GUAN.XU2@student.mmu.edu.my             0165151547
+             252UC241Q6 TRISHA ADELINA BINTI SHUHAINI TRISHA.ADELINA.SHUHAINI1@student.mmu.edu.my 0196458508 
+*/
+
 #include <iostream>
 #include <string>
 #include <cctype>   //for toupper()
@@ -9,12 +21,7 @@ using namespace std;
 const int MAX_ROWS = 10;
 const int MAX_COLS = 10;
 
-/*
------------------
-func prototypes
------------------
-*/
-
+//func prototypes
 bool convertInputToCoordinates(string input, int &row, int &col, int boardSize);
 void initializeNewBoard(char board[MAX_ROWS][MAX_COLS], int boardSize);
 void debugDisplayBoard(char board[MAX_ROWS][MAX_COLS], int boardSize);
