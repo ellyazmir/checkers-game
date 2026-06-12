@@ -32,26 +32,30 @@ int main()
     int  testBoardSize = 6;
     char testBoard[MAX_ROWS][MAX_COLS];
 
-    cout << "Select a Board Size: ";
+    cout << "Select a Board Size (6-10): ";
     cin  >> testBoardSize;
+
     while(testBoardSize > 10 || testBoardSize < 6)
     {
         cout << "ERROR: Board Size cannot be less than 6X6 or more than 10X10. Please try again!" << endl;
-        cout << "Select a Board Size: ";
+        cout << "Select a Board Size (6-10): ";
         cin  >> testBoardSize;
     }
 
     cout << "Board Size Selected: " << testBoardSize << "X" << testBoardSize << endl;
+    cout << endl;
     cout << "---Testing Piece Placement Logic---" << endl;
+    
     initializeNewBoard(testBoard, testBoardSize);
     debugDisplayBoard(testBoard, testBoardSize);
 
     cout << endl << endl;
+    
     cout << "---Testing Coordinate Translation Logic---" << endl;
     string userInput;
     int targetRow = 0, targetCol = 0;
 
-    // simple loop to test inputs like "D2", "A3" or "b1"
+    // simple loop to test inputs (3X before the program terminates)
     for (int i = 0; i < 3; i++)
     {
         cout << endl;
