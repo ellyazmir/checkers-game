@@ -1,5 +1,5 @@
 /*
-Program: layoutTest.cpp
+Program: checkermania.cpp
 Course: CCP6114 Programming Fundamentals
 Lecture Class: TC2L 
 Tutorial Class: TT7L 
