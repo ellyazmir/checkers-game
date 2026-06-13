@@ -13,12 +13,16 @@ Information: 252UC241RN ELLY MAZLIN BINTI MOHD AZMIR  ELLY.MAZLIN.MOHD1@student.
 #include <iomanip>
 #include <iostream>
 #include <limits>
+#include <string>
+#include <cctype>   //for toupper()
 
 using namespace std;
 
 const int MIN_SIZE = 6;
 const int MAX_SIZE = 10;
-const char EMPTY = ' ';
+const int MAX_ROWS = MAX_SIZE;
+const int MAX_COLS = MAX_SIZE;
+const char EMPTY    = ' ';
 const char PLAYER_X = 'x';
 const char PLAYER_O = 'o';
 
@@ -28,18 +32,42 @@ char **createBoard(int size);
 void initializeBoard(char **board, int size);
 void displayBoard(char **board, int size);
 void deleteBoard(char **board, int size);
+bool convertInputToCoordinates(string input, int &row, int &col, int boardSize);
 
 int main()
 {
-    int boardSize;
-    char **board;
-
     showIntroduction();
-    boardSize = getBoardSize();
+    int boardSize = getBoardSize();
 
-    board = createBoard(boardSize);
+    char **board = createBoard(boardSize);
     initializeBoard(board, boardSize);
     displayBoard(board, boardSize);
+
+    // coordinate translation
+    string userInput;
+    int targetRow = 0, targetCol = 0;
+
+    for (int i = 0; i < 3; i++)
+    {
+        cout << endl;
+        cout << "Enter a coordinate to translate (e.g. D2): ";
+        cin  >> userInput;
+
+        if (convertInputToCoordinates(userInput, targetRow, targetCol, boardSize))
+        {
+            cout << "Valid! '" << userInput << "' maps to -> Row: " << targetRow
+                 << ", Col: " << targetCol << endl;
+            cout << "Piece currently at that position: '" << board[targetRow][targetCol] << "'" << endl;
+        }
+
+        else
+        {
+            cout << "Invalid coordinate! It's either poorly formatted or out of bounds." << endl;
+        }
+
+        cout << endl;
+    }
+    
     deleteBoard(board, boardSize);
 
     cout << "Board displayed successfully.\n";
@@ -174,4 +202,24 @@ void deleteBoard(char **board, int size)
     }
 
     delete[] board;
+}
+
+bool convertInputToCoordinates(string input, int &row, int &col, int boardSize)
+{
+    // validation: ensure the string has exactly a row character & column number (length = 2)
+    if (input.length() != 2)
+        return false;
+
+    // convert char case using toupper
+    char letter = toupper(input[0]);
+    row = letter - 'A';
+
+    char numChar = input[1];
+    col = numChar - '1';
+
+    // ensure the coordinates exist on the active board size
+    if (row < 0 || row >= boardSize || col < 0 || col >= boardSize)
+        return false;
+
+    return true;
 }
