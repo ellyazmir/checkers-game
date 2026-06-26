@@ -71,7 +71,6 @@ int main()
 
     // Get user choice
     string menuChoice;
-    cout << "Type 'NEW GAME' or 'CONTINUE': ";
     getline(cin, menuChoice);
 
     // string to uppercase
@@ -136,6 +135,7 @@ int main()
         // coordinate validation
         if (!validFrom || !validTo)
         {
+            cout << endl;
             cout << "Invalid coordinates!" << endl;
             continue;
         }
@@ -191,10 +191,10 @@ int main()
 
 void showIntroduction()
 {
+    cout << endl;
     cout << "====================================\n";
-    cout << "          Checkermania\n";
+    cout << "            Checkermania\n";
     cout << "====================================\n";
-    cout << "Milestone 1: Dynamic Checker Board Display\n\n";
 }
 
 int getBoardSize()
@@ -372,9 +372,9 @@ void getMoveInput(string &from, string &to, char currentPlayer)
 {
     cout << endl;
     cout << "Player " << currentPlayer << "'s turn" << endl;
-    cout << "From: ";
+    cout << "From (letter + num): ";
     cin  >> from;
-    cout << "To: ";
+    cout << "To (letter + num): ";
     cin  >> to;
 }
 
@@ -402,10 +402,11 @@ bool isGameOver(char **board, int size, char currentPlayer)
 // WELCOME MENU
 void showWelcomeMenu()
 {
-    cout << "========= GAME START MENU ==========\n";
+    cout << "---------- GAME START MENU ---------\n";
     cout << " * NEW GAME\n";
     cout << " * CONTINUE\n";
     cout << "====================================\n";
+    cout << "Type 'NEW GAME' or 'CONTINUE': ";
 }
 
 bool fileExists(const string &filename)
@@ -505,14 +506,15 @@ bool checkForPromotion(char **board, int size, int row, int col, char player)
 
 void specialPowerMenu(int &choice)
 {
-    cout << "╔════════════════════════════════════════════╗" << endl;
-    cout << "  ⊹₊˚‧︵‿₊୨ SPECIAL POWER UNLOCKED ୧₊‿︵‧˚₊⊹  " << endl;
-    cout << "╚════════════════════════════════════════════╝" << endl;
-    cout << "Your piece reached the enemy's side!" << endl;
+    cout << "=====================================================" << endl;
+    cout << "          !!!   SPECIAL POWER UNLOCKED   !!!         " << endl;
+    cout << "=====================================================" << endl;
+    cout << "Your piece reached the enemy's side!" << endl << endl;
     cout << "Choose a power:" << endl;
-    cout << "  1. 🐦‍🔥 RED HAWK   - Jump over 2 opponent pieces" << endl;
-    cout << "  2. 🔮 FLOW STATE - Become immune to capture (1 turn)" << endl;
-    cout << "  3. 💥 SHAMBLES   - Capture opponent 2 spaces away" << endl;
+    cout << "  1. RED HAWK   - Jump over 2 opponent pieces" << endl;
+    cout << "  2. FLOW STATE - Become immune to capture (1 turn)" << endl;
+    cout << "  3. SHAMBLES   - Capture opponent 2 spaces away" << endl;
+    cout << "-----------------------------------------------------" << endl;
     cout << "Your choice (1-3): ";
     cin  >> choice;
 }
@@ -567,7 +569,7 @@ void redHawk(char **board, int size, int row, int col, char player)
         board[newRow][newCol] = board[row][col];
         board[row][col] = EMPTY;
 
-        cout << "🐦‍🔥 RED HAWK! TWO opponent pieces destroyed!" << endl;
+        cout << "RED HAWK! TWO opponent pieces destroyed!" << endl;
     }
     
     else
@@ -580,7 +582,7 @@ void flowState(char **board, int size, int row, int col)
 {
     shieldedPieces[row][col] = true;
 
-    cout << "🔮 FLOW STATE activated! This piece is immune to capture for 1 turn." << endl;
+    cout << "FLOW STATE activated! This piece is immune to capture for 1 turn." << endl;
     cout << "Your opponent cannot capture this piece next turn." << endl;
 }
 
@@ -600,7 +602,7 @@ void shambles(char **board, int size, int row, int col, char player)
             if (board[targetRow][targetCol] == opponent)
             {
                 board[targetRow][targetCol] = EMPTY;
-                cout << "💥 SHAMBLES! Opponent piece at "
+                cout << "SHAMBLES! Opponent piece at "
                      << char('A' + targetRow) << (targetCol + 1)
                      << " destroyed!" << endl;
                 hit = true;
