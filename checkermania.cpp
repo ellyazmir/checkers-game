@@ -15,6 +15,7 @@ Information: 252UC241RN ELLY MAZLIN BINTI MOHD AZMIR  ELLY.MAZLIN.MOHD1@student.
 #include <limits>
 #include <string>
 #include <cctype>   //for toupper()
+#include <fstream>
 
 using namespace std;
 
@@ -25,6 +26,7 @@ const int MAX_COLS = MAX_SIZE;
 const char EMPTY    = ' ';
 const char PLAYER_X = 'x';
 const char PLAYER_O = 'o';
+const string SAVE_FILENAME = "savegame.txt";
 
 void showIntroduction();
 int getBoardSize();
@@ -39,16 +41,77 @@ bool isGameOver(char **board, int size, char currentPlayer);
 int countPieces(char **board, int size, char player);
 void getMoveInput(string &from, string &to, char currentPlayer);
 
+void showWelcomeMenu();
+void saveGameState(char **board, int size, char currentPlayer, bool specialPowersActive[][MAX_SIZE]);
+bool loadGameState(char **board, int &size, char &currentPlayer, bool specialPowersActive[][MAX_SIZE]);
+bool fileExists(const string &filename);
+void startMenu(char **board, int &boardSize, char &currentTurn);
+void mainGameLoop(char **board, int boardSize, char startingTurn);
+
+
 int main()
 {
-    showIntroduction();
-    int boardSize = getBoardSize();
-    char **board = createBoard(boardSize);
-    initializeBoard(board, boardSize);
-    displayBoard(board, boardSize);
-
-    // game setup
+    bool specialPowersActive[MAX_SIZE][MAX_SIZE] = {false};
+    char **board = nullptr;
+    int boardSize = 0;
     char currentPlayer = PLAYER_X;
+
+    showIntroduction();
+    showWelcomeMenu();
+
+    cin.ignore();
+
+    // Get user choice
+    string menuChoice;
+    cout << "Type 'NEW GAME' or 'CONTINUE': ";
+    getline(cin, menuChoice);
+
+    // string to uppercase
+    for (size_t i = 0; i < menuChoice.length(); i++)
+    {
+        menuChoice[i] = toupper(menuChoice[i]);
+    }
+
+    if (menuChoice == "CONTINUE")
+    {
+        if (fileExists(SAVE_FILENAME))
+        {
+            cout << "File save found. Loading state..." << endl;
+            // Create max-size just in case
+            board = createBoard(MAX_SIZE);
+            
+            if (loadGameState(board, boardSize, currentPlayer, specialPowersActive))
+            {
+                cout << "Game loaded successfully!" << endl;
+                displayBoard(board, boardSize);
+            } else {
+                cout << "Failed to read save file or corrupted data. Creating new game instead." << endl;
+                deleteBoard(board, MAX_SIZE);  // clean max board
+                boardSize = getBoardSize();
+                board = createBoard(boardSize);
+                initializeBoard(board, boardSize);
+                currentPlayer = PLAYER_X;
+                displayBoard(board, boardSize);
+            }
+        } else {
+            cout << "No save file found. Creating new game..." << endl;
+            boardSize = getBoardSize();
+            board = createBoard(boardSize);
+            initializeBoard(board, boardSize);
+            currentPlayer = PLAYER_X;
+            displayBoard(board, boardSize);
+        }
+    }
+    else // NEW GAME
+    {
+        boardSize = getBoardSize();
+        board = createBoard(boardSize);
+        initializeBoard(board, boardSize);
+        currentPlayer = PLAYER_X;
+        displayBoard(board, boardSize);
+    }
+    
+    // game setup
     while (!isGameOver(board, boardSize, currentPlayer))
     {
         // player move input
@@ -69,6 +132,8 @@ int main()
             continue;
         }
 
+        // guanxu: move validation & capture logic here
+
         // board update
         board[toRow][toCol] = board[fromRow][fromCol];
         board[fromRow][fromCol] = EMPTY;
@@ -76,9 +141,13 @@ int main()
         // board display
         displayBoard(board, boardSize);
 
+        saveGameState(board, boardSize, currentPlayer, specialPowersActive);
+
         // player turn switching
         switchTurn(currentPlayer);
     }
+
+    saveGameState(board, boardSize, currentPlayer, specialPowersActive);
 
     // memory cleanup
     deleteBoard(board, boardSize);
@@ -294,4 +363,91 @@ bool isGameOver(char **board, int size, char currentPlayer)
     }
 
     return false;
+}
+
+// WELCOME MENU
+void showWelcomeMenu()
+{
+    cout << "========= GAME START MENU ==========\n";
+    cout << " * NEW GAME\n";
+    cout << " * CONTINUE\n";
+    cout << "====================================\n";
+}
+
+bool fileExists(const string &filename)
+{
+    ifstream file(filename);
+    return file.good();
+}
+
+// SAVE AND LOAD FUNCTIONS
+void saveGameState(char **board, int size, char currentPlayer, bool specialPowersActive[][MAX_SIZE])
+{
+    ofstream outFile(SAVE_FILENAME);
+    if (!outFile)
+    {
+        cout << "Error: Could not open file for writing data storage state.\n";
+        return;
+    }
+
+    // Write parameters
+    outFile << size << "\n";
+    outFile << currentPlayer << "\n";
+
+    // write saved pieces using placeholders
+    for (int r = 0; r < size; r++)
+    {
+        for (int c = 0; c < size; c++)
+        {
+            if (board[r][c] == EMPTY) outFile << '_';
+            else outFile << board[r][c];
+        }
+        outFile << "\n";
+    }
+
+    // tracks special power
+    for (int r = 0; r < size; r++)
+    {
+        for (int c = 0; c < size; c++)
+        {
+            outFile << specialPowersActive[r][c] << " ";
+        }
+        outFile << "\n";
+    }
+
+    outFile.close();
+    cout << "Game progress recorded successfully.\n";
+}
+
+bool loadGameState(char **board, int &size, char &currentPlayer, bool specialPowersActive[][MAX_SIZE])
+{
+    ifstream inFile(SAVE_FILENAME);
+    if (!inFile) return false;
+
+    // Read general attribute
+    if (!(inFile >> size >> currentPlayer)) return false;
+
+    // Read structural map allocation
+    char cellData;
+    for (int r = 0; r < size; r++)
+    {
+        for (int c = 0; c < size; c++)
+        {
+            if (!(inFile >> cellData)) return false;
+            if (cellData == '_') board[r][c] = EMPTY;
+            else board[r][c] = cellData;
+        }
+    }
+
+    // read special powers used
+    for (int r = 0; r < size; r++)
+    {
+        for (int c = 0; c < size; c++)
+        {
+            if (!(inFile >> specialPowersActive[r][c])) return false;
+        }
+    }
+
+    inFile.close();
+    return true;
 }
