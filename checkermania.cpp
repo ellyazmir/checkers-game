@@ -34,44 +34,55 @@ void displayBoard(char **board, int size);
 void deleteBoard(char **board, int size);
 bool convertInputToCoordinates(string input, int &row, int &col, int boardSize);
 
+void switchTurn(char &currentPlayer);
+bool isGameOver(char **board, int size, char currentPlayer);
+int countPieces(char **board, int size, char player);
+void getMoveInput(string &from, string &to, char currentPlayer);
+
 int main()
 {
     showIntroduction();
     int boardSize = getBoardSize();
-
     char **board = createBoard(boardSize);
     initializeBoard(board, boardSize);
     displayBoard(board, boardSize);
 
-    // coordinate translation
-    string userInput;
-    int targetRow = 0, targetCol = 0;
-
-    for (int i = 0; i < 3; i++)
+    // game setup
+    char currentPlayer = PLAYER_X;
+    while (!isGameOver(board, boardSize, currentPlayer))
     {
-        cout << endl;
-        cout << "Enter a coordinate to translate (e.g. D2): ";
-        cin  >> userInput;
+        // player move input
+        string from;
+        string to;
+        getMoveInput(from, to, currentPlayer);
 
-        if (convertInputToCoordinates(userInput, targetRow, targetCol, boardSize))
+        // coordinate conversion
+        int fromRow = 0, fromCol = 0;
+        int toRow = 0, toCol = 0;
+        bool validFrom = convertInputToCoordinates(from, fromRow, fromCol, boardSize);
+        bool validTo = convertInputToCoordinates(to, toRow, toCol, boardSize);
+
+        // coordinate validation
+        if (!validFrom || !validTo)
         {
-            cout << "Valid! '" << userInput << "' maps to -> Row: " << targetRow
-                 << ", Col: " << targetCol << endl;
-            cout << "Piece currently at that position: '" << board[targetRow][targetCol] << "'" << endl;
+            cout << "Invalid coordinates!" << endl;
+            continue;
         }
 
-        else
-        {
-            cout << "Invalid coordinate! It's either poorly formatted or out of bounds." << endl;
-        }
+        // board update
+        board[toRow][toCol] = board[fromRow][fromCol];
+        board[fromRow][fromCol] = EMPTY;
 
-        cout << endl;
+        // board display
+        displayBoard(board, boardSize);
+
+        // player turn switching
+        switchTurn(currentPlayer);
     }
-    
+
+    // memory cleanup
     deleteBoard(board, boardSize);
-
-    cout << "Board displayed successfully.\n";
-
+    cout << "Game Over!" << endl;
     return 0;
 }
 
@@ -222,4 +233,65 @@ bool convertInputToCoordinates(string input, int &row, int &col, int boardSize)
         return false;
 
     return true;
+}
+
+void switchTurn(char &currentPlayer)
+{
+    if (currentPlayer == PLAYER_X)
+    {
+        currentPlayer = PLAYER_O;
+    }
+    else
+    {
+        currentPlayer = PLAYER_X;
+    }
+}
+
+// counts the remaining pieces for a player
+int countPieces(char **board, int size, char player)
+{
+    int count = 0;
+    for (int row = 0; row < size; row++)
+    {
+        for (int col = 0; col < size; col++)
+        {
+            if (board[row][col] == player)
+            {
+                count++;
+            }
+        }
+    }
+    return count;
+}
+
+// obtains move coordinates from the current player
+void getMoveInput(string &from, string &to, char currentPlayer)
+{
+    cout << endl;
+    cout << "Player " << currentPlayer << "'s turn" << endl;
+    cout << "From: ";
+    cin  >> from;
+    cout << "To: ";
+    cin  >> to;
+}
+
+// this checks if the game has ended
+bool isGameOver(char **board, int size, char currentPlayer)
+{
+    int xPieces = countPieces(board, size, PLAYER_X);
+    int oPieces = countPieces(board, size, PLAYER_O);
+
+    if (xPieces == 0) // if player x runs out of pieces player o will win
+    {
+        cout << "Player O wins!" << endl;
+        return true;
+    }
+
+    if (oPieces == 0) // if player o runs out of pieces player o will win
+    {
+        cout << "Player X wins!" << endl;
+        return true;
+    }
+
+    return false;
 }
