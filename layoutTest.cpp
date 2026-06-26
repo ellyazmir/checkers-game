@@ -36,6 +36,7 @@ void displayBoard(char **board, int size);
 void deleteBoard(char **board, int size);
 bool convertInputToCoordinates(string input, int &row, int &col, int boardSize);
 
+/* MENU AND SAVE/LOAD FUNCTIONS
 void showWelcomeMenu();
 void saveGameState(char **board, int size, char currentPlayer, bool specialPowersActive[][MAX_SIZE]);
 bool loadGameState(char **board, int &size, char &currentPlayer, bool specialPowersActive[][MAX_SIZE]);
@@ -43,7 +44,7 @@ bool fileExists(const string &filename);
 
 void startMenu(char **board, int &boardSize, char &currentTurn);
 void mainGameLoop(char **board, int boardSize, char startingTurn);
-
+*/
 
 int main()
 {
@@ -54,7 +55,7 @@ int main()
     char currentPlayer = PLAYER_X;
     bool specialPowersActive[MAX_ROWS][MAX_SIZE] = {false};
     char **board = nullptr;
-
+/*           MENU SCREEN
     showWelcomeMenu();
     cout << "Type 'NEW GAME' or 'CONTINUE': ";
     getline(cin, menuChoice);
@@ -99,7 +100,7 @@ int main()
         currentPlayer = PLAYER_X;
         displayBoard(board, boardSize);
     }
-
+*/
     // coordinate translation
     string userInput;
     int targetRow = 0, targetCol = 0;
@@ -142,7 +143,7 @@ void showIntroduction()
     cout << "====================================\n";
     cout << "Milestone 1: Dynamic Checker Board Display\n\n";
 }
-
+/*  WELCOME MENU
 void showWelcomeMenu()
 {
     cout << "========= GAME START MENU ==========\n";
@@ -150,7 +151,7 @@ void showWelcomeMenu()
     cout << " * CONTINUE\n";
     cout << "====================================\n";
 }
-
+*/
 int getBoardSize()
 {
     int size;
@@ -297,7 +298,7 @@ bool fileExists(const string &filename)
     ifstream file(filename);
     return file.good();
 }
-
+/*  SAVE AND LOAD FUNCTIONS
 void saveGameState(char **board, int size, char currentPlayer, bool specialPowersActive[][MAX_SIZE])
 {
     ofstream outFile(SAVE_FILENAME);
@@ -368,3 +369,4 @@ bool loadGameState(char **board, int &size, char &currentPlayer, bool specialPow
     inFile.close();
     return true;
 }
+*/
