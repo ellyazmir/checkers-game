@@ -28,6 +28,9 @@ const char PLAYER_X = 'x';
 const char PLAYER_O = 'o';
 const string SAVE_FILENAME = "savegame.txt";
 
+// global tracking for special powers
+bool shieldedPieces[MAX_SIZE][MAX_SIZE] = {false};
+
 void showIntroduction();
 int getBoardSize();
 char **createBoard(int size);
@@ -48,6 +51,11 @@ bool fileExists(const string &filename);
 void startMenu(char **board, int &boardSize, char &currentTurn);
 void mainGameLoop(char **board, int boardSize, char startingTurn);
 
+bool checkForPromotion(char **board, int size, int row, int col, char player);
+void specialPowerMenu(int &choice);
+void redHawk(char **board, int size, int row, int col, char player);
+void flowState(char **board, int size, int row, int col);
+void shambles(char **board, int size, int row, int col, char player);
 
 int main()
 {
@@ -137,6 +145,32 @@ int main()
         // board update
         board[toRow][toCol] = board[fromRow][fromCol];
         board[fromRow][fromCol] = EMPTY;
+
+        // special power check
+        if (checkForPromotion(board, boardSize, toRow, toCol, currentPlayer))
+        {
+            int powerChoice;
+            specialPowerMenu(powerChoice);
+
+            switch (powerChoice)
+            {
+                case 1:
+                    redHawk(board, boardSize, toRow, toCol, currentPlayer);
+                    break;
+                case 2:
+                    flowState(board, boardSize, toRow, toCol);
+                    break;
+                case 3:
+                    shambles(board, boardSize, toRow, toCol, currentPlayer);
+                    break;
+                default:
+                    cout << "Invalid choice! No power activated..." << endl;
+                    break;
+            }
+
+            // update specialPowersActive for save/load
+            specialPowersActive[toRow][toCol] = true;
+        }
 
         // board display
         displayBoard(board, boardSize);
@@ -450,4 +484,132 @@ bool loadGameState(char **board, int &size, char &currentPlayer, bool specialPow
 
     inFile.close();
     return true;
+}
+
+bool checkForPromotion(char **board, int size, int row, int col, char player)
+{
+    // P-X promotes when reaching row 0 (top - opponent's side)
+    if (player == PLAYER_X && row == 0)
+    {
+        return true;
+    }
+
+    // P-O promotes when reaching row size-1 (bottom - opponent's side)
+    if (player == PLAYER_O && row == size - 1)
+    {
+        return true;
+    }
+
+    return false;
+}
+
+void specialPowerMenu(int &choice)
+{
+    cout << "╔════════════════════════════════════════════╗" << endl;
+    cout << "  ⊹₊˚‧︵‿₊୨ SPECIAL POWER UNLOCKED ୧₊‿︵‧˚₊⊹  " << endl;
+    cout << "╚════════════════════════════════════════════╝" << endl;
+    cout << "Your piece reached the enemy's side!" << endl;
+    cout << "Choose a power:" << endl;
+    cout << "  1. 🐦‍🔥 RED HAWK   - Jump over 2 opponent pieces" << endl;
+    cout << "  2. 🔮 FLOW STATE - Become immune to capture (1 turn)" << endl;
+    cout << "  3. 💥 SHAMBLES   - Capture opponent 2 spaces away" << endl;
+    cout << "Your choice (1-3): ";
+    cin  >> choice;
+}
+
+void redHawk(char **board, int size, int row, int col, char player)
+{
+    char opponent = (player == PLAYER_X) ? PLAYER_O : PLAYER_X;
+    int  direction = (player == PLAYER_X) ? -2 : 2;  // X move up, O move down
+
+    cout << "Enter destination column (1-" << size << "): ";
+    int destCol;
+    cin  >> destCol;
+    destCol--;
+
+    int newRow = row + direction;
+    int newCol = destCol;
+
+    // check bounds
+    if (newRow < 0 || newRow >= size || newCol < 0 || newCol >= size)
+    {
+        cout << "Destination out of bounds!" << endl;
+        return;
+    }
+
+    // check destination is empty
+    if (board[newRow][newCol] != EMPTY)
+    {
+        cout << "Destination occupied!" << endl;
+        return;
+    }
+
+    // must move 2 spaces diagonally or straight
+    if (abs(col - newCol) != 2 && abs(col - newCol) != 0)
+    {
+        cout << "Sky Walk requires 2 spaces diagonally or straight!" << endl;
+        return;
+    }
+
+    // check if there are TWO opponent pieces in between
+    int midRow1 = row + (direction / 2);
+    int midCol1 = (col + newCol) / 2;
+    int midRow2 = row + direction;
+    int midCol2 = col + (newCol - col) / 2;
+
+    if (board[midRow1][midCol1] == opponent && board[midRow2][midCol2] == opponent)
+    {
+        // both are opponents -> capture both
+        board[midRow1][midCol1] = EMPTY;
+        board[midRow2][midCol2] = EMPTY;
+
+        // move the piece
+        board[newRow][newCol] = board[row][col];
+        board[row][col] = EMPTY;
+
+        cout << "🐦‍🔥 RED HAWK! TWO opponent pieces destroyed!" << endl;
+    }
+    
+    else
+    {
+        cout << "Need TWO opponent pieces in the path!" << endl;
+    }
+}
+
+void flowState(char **board, int size, int row, int col)
+{
+    shieldedPieces[row][col] = true;
+
+    cout << "🔮 FLOW STATE activated! This piece is immune to capture for 1 turn." << endl;
+    cout << "Your opponent cannot capture this piece next turn." << endl;
+}
+
+void shambles(char **board, int size, int row, int col, char player)
+{
+    char opponent = (player == PLAYER_X) ? PLAYER_O : PLAYER_X;
+    int  directions[4][2] = {{-2, -2}, {-2, 2}, {2, -2}, {2, 2}};
+    bool hit = false;
+
+    for (int i = 0; i < 4; i++)
+    {
+        int targetRow = row + directions[i][0];
+        int targetCol = col + directions[i][1];
+
+        if (targetRow >= 0 && targetRow < size && targetCol >= 0 && targetCol < size)
+        {
+            if (board[targetRow][targetCol] == opponent)
+            {
+                board[targetRow][targetCol] = EMPTY;
+                cout << "💥 SHAMBLES! Opponent piece at "
+                     << char('A' + targetRow) << (targetCol + 1)
+                     << " destroyed!" << endl;
+                hit = true;
+            }
+        }
+    }
+
+    if (!hit)
+    {
+        cout << "No opponent piece within sniper range!" << endl;
+    }
 }
