@@ -48,14 +48,23 @@ void showWelcomeMenu();
 void saveGameState(char **board, int size, char currentPlayer, bool specialPowersActive[][MAX_SIZE]);
 bool loadGameState(char **board, int &size, char &currentPlayer, bool specialPowersActive[][MAX_SIZE]);
 bool fileExists(const string &filename);
-void startMenu(char **board, int &boardSize, char &currentTurn);
-void mainGameLoop(char **board, int boardSize, char startingTurn);
 
 bool checkForPromotion(char **board, int size, int row, int col, char player);
 void specialPowerMenu(int &choice);
 void redHawk(char **board, int size, int row, int col, char player);
 void flowState(char **board, int size, int row, int col);
 void shambles(char **board, int size, int row, int col, char player);
+
+bool isInsideBoard(int size, int row, int col);
+bool isDarkSquare(int row, int col);
+bool isOpponentPiece(char piece, char player);
+int getAbsoluteValue(int number);
+bool isValidMove(char **board, int size, int fromRow, int fromCol,
+                 int toRow, int toCol, char player);
+void makeMove(char **board, int fromRow, int fromCol, int toRow, int toCol);
+bool checkAndCapture(char **board, int size, int fromRow, int fromCol,
+                     int toRow, int toCol, char player);
+void capturePiece(char **board, int midRow, int midCol);
 
 int main()
 {
@@ -140,11 +149,18 @@ int main()
             continue;
         }
 
-        // guanxu: move validation & capture logic here
-
-        // board update
-        board[toRow][toCol] = board[fromRow][fromCol];
-        board[fromRow][fromCol] = EMPTY;
+        // : move validation, capture logic and board update
+        if (isValidMove(board, boardSize, fromRow, fromCol, toRow, toCol, currentPlayer))
+        {
+            checkAndCapture(board, boardSize, fromRow, fromCol, toRow, toCol, currentPlayer);
+            makeMove(board, fromRow, fromCol, toRow, toCol);
+        }
+        else
+        {
+            cout << endl;
+            cout << "Invalid move! Please try again." << endl;
+            continue;
+        }
 
         // special power check
         if (checkForPromotion(board, boardSize, toRow, toCol, currentPlayer))
@@ -336,6 +352,157 @@ bool convertInputToCoordinates(string input, int &row, int &col, int boardSize)
         return false;
 
     return true;
+}
+
+// checks if coordinate is inside the board
+bool isInsideBoard(int size, int row, int col)
+{
+    return row >= 0 && row < size && col >= 0 && col < size;
+}
+
+// checks if the selected square is a dark square
+bool isDarkSquare(int row, int col)
+{
+    return (row + col) % 2 == 1;
+}
+
+// checks if the piece belongs to the opponent
+bool isOpponentPiece(char piece, char player)
+{
+    if (player == PLAYER_X && piece == PLAYER_O)
+    {
+        return true;
+    }
+    else if (player == PLAYER_O && piece == PLAYER_X)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+// gets positive value for row and column difference
+int getAbsoluteValue(int number)
+{
+    if (number < 0)
+    {
+        return -number;
+    }
+    else
+    {
+        return number;
+    }
+}
+
+// validates normal move and capture move
+bool isValidMove(char **board, int size, int fromRow, int fromCol,
+                 int toRow, int toCol, char player)
+{
+    int rowDifference;
+    int colDifference;
+    int rowDirection;
+    int midRow;
+    int midCol;
+
+    if (!isInsideBoard(size, fromRow, fromCol) ||
+        !isInsideBoard(size, toRow, toCol))
+    {
+        return false;
+    }
+
+    if (!isDarkSquare(fromRow, fromCol) || !isDarkSquare(toRow, toCol))
+    {
+        return false;
+    }
+
+    if (board[fromRow][fromCol] != player)
+    {
+        return false;
+    }
+
+    if (board[toRow][toCol] != EMPTY)
+    {
+        return false;
+    }
+
+    rowDifference = toRow - fromRow;
+    colDifference = toCol - fromCol;
+
+    if (player == PLAYER_X)
+    {
+        rowDirection = -1;
+    }
+    else
+    {
+        rowDirection = 1;
+    }
+
+    if (rowDifference == rowDirection && getAbsoluteValue(colDifference) == 1)
+    {
+        return true;
+    }
+
+    if (rowDifference == rowDirection * 2 && getAbsoluteValue(colDifference) == 2)
+    {
+        midRow = (fromRow + toRow) / 2;
+        midCol = (fromCol + toCol) / 2;
+
+        if (isOpponentPiece(board[midRow][midCol], player))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// updates the board after a valid move
+void makeMove(char **board, int fromRow, int fromCol, int toRow, int toCol)
+{
+    board[toRow][toCol] = board[fromRow][fromCol];
+    board[fromRow][fromCol] = EMPTY;
+}
+
+// checks and removes the opponent piece if capture happens
+bool checkAndCapture(char **board, int size, int fromRow, int fromCol,
+                     int toRow, int toCol, char player)
+{
+    int rowDifference;
+    int colDifference;
+    int midRow;
+    int midCol;
+
+    if (!isInsideBoard(size, fromRow, fromCol) ||
+        !isInsideBoard(size, toRow, toCol))
+    {
+        return false;
+    }
+
+    rowDifference = toRow - fromRow;
+    colDifference = toCol - fromCol;
+
+    if (getAbsoluteValue(rowDifference) == 2 &&
+        getAbsoluteValue(colDifference) == 2)
+    {
+        midRow = (fromRow + toRow) / 2;
+        midCol = (fromCol + toCol) / 2;
+
+        if (isOpponentPiece(board[midRow][midCol], player))
+        {
+            capturePiece(board, midRow, midCol);
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// removes captured piece from the board
+void capturePiece(char **board, int midRow, int midCol)
+{
+    board[midRow][midCol] = EMPTY;
 }
 
 void switchTurn(char &currentPlayer)
