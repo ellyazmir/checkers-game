@@ -31,6 +31,7 @@ const string SAVE_FILENAME = "savegame.txt";
 // global tracking for special powers
 bool shieldedPieces[MAX_SIZE][MAX_SIZE] = {false};
 bool promotedPieces[MAX_SIZE][MAX_SIZE] = {false};
+int flowStateTurns[MAX_SIZE][MAX_SIZE] = {0};  // Track remaining turns for Flow State
 
 void showIntroduction();
 int getBoardSize();
@@ -563,6 +564,25 @@ void capturePiece(char **board, int midRow, int midCol)
 
 void switchTurn(char &currentPlayer)
 {
+    // Decrease Flow State turns for all pieces
+    for (int r = 0; r < MAX_SIZE; r++)
+    {
+        for (int c = 0; c < MAX_SIZE; c++)
+        {
+            if (flowStateTurns[r][c] > 0)
+            {
+                flowStateTurns[r][c]--;
+                
+                // If turns reach 0, remove shield
+                if (flowStateTurns[r][c] == 0)
+                {
+                    shieldedPieces[r][c] = false;
+                }
+            }
+        }
+    }
+
+    // Switch player turn
     if (currentPlayer == PLAYER_X)
     {
         currentPlayer = PLAYER_O;
@@ -689,12 +709,22 @@ void saveGameState(char **board, int size, char currentPlayer, bool specialPower
     // Save promoted pieces status
     for (int r = 0; r < size; r++)
     {
-    for (int c = 0; c < size; c++)
-    {
-        outFile << promotedPieces[r][c] << " ";
+        for (int c = 0; c < size; c++)
+        {
+            outFile << promotedPieces[r][c] << " ";
+        }
+        outFile << "\n";
     }
-    outFile << "\n";
-}
+
+    // Save Flow State turns remaining
+    for (int r = 0; r < size; r++)
+    {
+        for (int c = 0; c < size; c++)
+        {
+            outFile << flowStateTurns[r][c] << " ";
+        }
+        outFile << "\n";
+    }
 
     outFile.close();
     cout << "Game progress recorded successfully.\n";
@@ -738,6 +768,15 @@ bool loadGameState(char **board, int &size, char &currentPlayer, bool specialPow
         }
     }
 
+    // Read Flow State turns remaining
+    for (int r = 0; r < size; r++)
+    {
+        for (int c = 0; c < size; c++)
+        {
+            if (!(inFile >> flowStateTurns[r][c])) return false;
+        }
+    }
+
     inFile.close();
     return true;
 }
@@ -767,13 +806,14 @@ void specialPowerMenu(int &choice)
     cout << "Your piece reached the enemy's side!" << endl << endl;
     cout << "Choose a power:" << endl;
     cout << "  1. RED HAWK   - Jump over 2 opponent pieces" << endl;
-    cout << "  2. FLOW STATE - Become immune to capture (1 turn)" << endl;
+    cout << "  2. FLOW STATE - Become immune to capture (5 turns)" << endl;
     cout << "  3. SHAMBLES   - Capture opponent 2 spaces away" << endl;
     cout << "-----------------------------------------------------" << endl;
     cout << "Your choice (1-3): ";
     cin  >> choice;
 }
 
+// RED HAWK - Jump over 2 opponent pieces
 void redHawk(char **board, int size, int row, int col, char player)
 {
     char opponent = (player == PLAYER_X) ? PLAYER_O : PLAYER_X;
@@ -804,7 +844,7 @@ void redHawk(char **board, int size, int row, int col, char player)
     // must move 2 spaces diagonally or straight
     if (abs(col - newCol) != 2 && abs(col - newCol) != 0)
     {
-        cout << "Sky Walk requires 2 spaces diagonally or straight!" << endl;
+        cout << "Red Hawk requires 2 spaces diagonally or straight!" << endl;
         return;
     }
 
@@ -812,7 +852,7 @@ void redHawk(char **board, int size, int row, int col, char player)
     int midRow1 = row + (direction / 2);
     int midCol1 = (col + newCol) / 2;
     int midRow2 = row + direction;
-    int midCol2 = col + (newCol - col) / 2;
+    int midCol2 = (col + newCol) / 2;
 
     if (board[midRow1][midCol1] == opponent && board[midRow2][midCol2] == opponent)
     {
@@ -833,21 +873,23 @@ void redHawk(char **board, int size, int row, int col, char player)
 
         cout << "RED HAWK! TWO opponent pieces destroyed!" << endl;
     }
-    
     else
     {
         cout << "Need TWO opponent pieces in the path!" << endl;
     }
 }
 
+// FLOW STATE - Immune to capture for 5 turns
 void flowState(char **board, int size, int row, int col)
 {
     shieldedPieces[row][col] = true;
+    flowStateTurns[row][col] = 5;       // 5 turns immunity
 
-    cout << "FLOW STATE activated! This piece is immune to capture for 1 turn." << endl;
-    cout << "Your opponent cannot capture this piece next turn." << endl;
+    cout << "FLOW STATE activated! This piece is immune to capture for 5 turns." << endl;
+    cout << "Your opponent cannot capture this piece for the next 5 turns." << endl;
 }
 
+// SHAMBLES - Capture opponent 2 spaces away diagonally
 void shambles(char **board, int size, int row, int col, char player)
 {
     char opponent = (player == PLAYER_X) ? PLAYER_O : PLAYER_X;
