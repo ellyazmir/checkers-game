@@ -31,7 +31,8 @@ const string SAVE_FILENAME = "savegame.txt";
 // global tracking for special powers
 bool shieldedPieces[MAX_SIZE][MAX_SIZE] = {false};
 bool promotedPieces[MAX_SIZE][MAX_SIZE] = {false};
-int flowStateTurns[MAX_SIZE][MAX_SIZE] = {0};  // Track remaining turns for Flow State
+int flowStateTurns[MAX_SIZE][MAX_SIZE] = {0};
+bool redHawkPieces[MAX_SIZE][MAX_SIZE] = {false};
 
 void showIntroduction();
 int getBoardSize();
@@ -445,28 +446,130 @@ bool isValidMove(char **board, int size, int fromRow, int fromCol,
     rowDifference = toRow - fromRow;
     colDifference = toCol - fromCol;
 
-    if (promotedPieces[fromRow][fromCol])   // #KING PIECE
+    // ============================================================
+    // RED HAWK PIECE: Bishop-style movement (any distance diagonally)
+    // ============================================================
+    if (redHawkPieces[fromRow][fromCol])
     {
-        // normal move: 1 space diagonally (any direction)
+        // MUST be diagonal: |row diff| == |col diff|
+        if (getAbsoluteValue(rowDifference) != getAbsoluteValue(colDifference))
+        {
+            cout << "Red Hawk must move diagonally!" << endl;
+            return false;
+        }
+
+        // Check path: all intermediate squares must be EMPTY or OPPONENT
+        int rowStep = (rowDifference > 0) ? 1 : -1;
+        int colStep = (colDifference > 0) ? 1 : -1;
+        
+        int checkRow = fromRow + rowStep;
+        int checkCol = fromCol + colStep;
+        bool blocked = false;
+        bool capturedAny = false;
+        
+        while (checkRow != toRow && checkCol != toCol)
+        {
+            if (board[checkRow][checkCol] != EMPTY)
+            {
+                // Check if it's an opponent piece
+                if (isOpponentPiece(board[checkRow][checkCol], player))
+                {
+                    // Check if opponent is shielded
+                    if (shieldedPieces[checkRow][checkCol])
+                    {
+                        cout << "Cannot destroy! A piece at " 
+                             << char('A' + checkRow) << (checkCol + 1) 
+                             << " is protected by Flow State!" << endl;
+                        blocked = true;
+                        break;
+                    }
+                    
+                    // Capture opponent piece (throw out)
+                    board[checkRow][checkCol] = EMPTY;
+                    capturedAny = true;
+                    cout << "🔥 Red Hawk destroyed opponent at " 
+                         << char('A' + checkRow) << (checkCol + 1) << "!" << endl;
+                }
+                else
+                {
+                    // Own piece blocking
+                    cout << "Path blocked by your own piece at " 
+                         << char('A' + checkRow) << (checkCol + 1) << "!" << endl;
+                    blocked = true;
+                    break;
+                }
+            }
+            checkRow += rowStep;
+            checkCol += colStep;
+        }
+
+        if (blocked)
+        {
+            return false;
+        }
+
+        // Destination must be EMPTY
+        if (board[toRow][toCol] != EMPTY)
+        {
+            cout << "Destination must be empty!" << endl;
+            return false;
+        }
+
+        // Valid move (with or without capture)
+        return true;
+    }
+
+    // ============================================================
+    // FLOW STATE ACTIVE: Can move like a KING (back and forth)
+    // ============================================================
+    if (flowStateTurns[fromRow][fromCol] > 0)
+    {
+        // 1 space diagonally (any direction)
         if (getAbsoluteValue(rowDifference) == 1 && getAbsoluteValue(colDifference) == 1)
         {
             return true;
         }
 
-        // capture move: 2 spaces diagonally (any direction)
+        // 2 spaces diagonally (any direction) for capture
         if (getAbsoluteValue(rowDifference) == 2 && getAbsoluteValue(colDifference) == 2)
         {
             midRow = (fromRow + toRow) / 2;
             midCol = (fromCol + toCol) / 2;
 
-            // FLOW STATE CHECK: Cannot capture shielded piece
+            if (isOpponentPiece(board[midRow][midCol], player))
+            {
+                if (shieldedPieces[midRow][midCol])
+                {
+                    cout << "Cannot capture! That piece is protected by Flow State!" << endl;
+                    return false;
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // ============================================================
+    // KING PIECE (PROMOTED): Can move both directions (1-2 spaces)
+    // ============================================================
+    if (promotedPieces[fromRow][fromCol])
+    {
+        if (getAbsoluteValue(rowDifference) == 1 && getAbsoluteValue(colDifference) == 1)
+        {
+            return true;
+        }
+
+        if (getAbsoluteValue(rowDifference) == 2 && getAbsoluteValue(colDifference) == 2)
+        {
+            midRow = (fromRow + toRow) / 2;
+            midCol = (fromCol + toCol) / 2;
+
             if (shieldedPieces[midRow][midCol])
             {
                 cout << "Cannot capture! That piece is protected by Flow State!" << endl;
                 return false;
             }
 
-            // check if middle piece is opponent
             if (isOpponentPiece(board[midRow][midCol], player))
             {
                 return true;
@@ -475,6 +578,7 @@ bool isValidMove(char **board, int size, int fromRow, int fromCol,
         return false;
     }
 
+    // REGULAR PIECE: Only move FORWARD (1-2 spaces)
     if (player == PLAYER_X)
     {
         rowDirection = -1;
@@ -509,11 +613,35 @@ bool isValidMove(char **board, int size, int fromRow, int fromCol,
     return false;
 }
 
-// updates the board after a valid move
+// makeMove - Move piece and transfer all statuses
 void makeMove(char **board, int fromRow, int fromCol, int toRow, int toCol)
 {
+    // Move piece
     board[toRow][toCol] = board[fromRow][fromCol];
     board[fromRow][fromCol] = EMPTY;
+
+    // Transfer Red Hawk status
+    if (redHawkPieces[fromRow][fromCol])
+    {
+        redHawkPieces[toRow][toCol] = true;
+        redHawkPieces[fromRow][fromCol] = false;
+    }
+
+    // Transfer Flow State (shield & turns)
+    if (flowStateTurns[fromRow][fromCol] > 0 || shieldedPieces[fromRow][fromCol])
+    {
+        flowStateTurns[toRow][toCol] = flowStateTurns[fromRow][fromCol];
+        flowStateTurns[fromRow][fromCol] = 0;
+        shieldedPieces[toRow][toCol] = shieldedPieces[fromRow][fromCol];
+        shieldedPieces[fromRow][fromCol] = false;
+    }
+
+    // Transfer promoted status (king)
+    if (promotedPieces[fromRow][fromCol])
+    {
+        promotedPieces[toRow][toCol] = true;
+        promotedPieces[fromRow][fromCol] = false;
+    }
 }
 
 // checks and removes the opponent piece if capture happens
@@ -562,6 +690,7 @@ void capturePiece(char **board, int midRow, int midCol)
     board[midRow][midCol] = EMPTY;
 }
 
+// switchTurn - Decrease Flow State turns & switch player
 void switchTurn(char &currentPlayer)
 {
     // Decrease Flow State turns for all pieces
@@ -726,6 +855,16 @@ void saveGameState(char **board, int size, char currentPlayer, bool specialPower
         outFile << "\n";
     }
 
+    // Save Red Hawk status
+    for (int r = 0; r < size; r++)
+    {
+        for (int c = 0; c < size; c++)
+        {
+            outFile << redHawkPieces[r][c] << " ";
+        }
+        outFile << "\n";
+    }
+
     outFile.close();
     cout << "Game progress recorded successfully.\n";
 }
@@ -777,6 +916,15 @@ bool loadGameState(char **board, int &size, char &currentPlayer, bool specialPow
         }
     }
 
+    // Read Red Hawk status
+    for (int r = 0; r < size; r++)
+    {
+        for (int c = 0; c < size; c++)
+        {
+            if (!(inFile >> redHawkPieces[r][c])) return false;
+        }
+    }
+
     inFile.close();
     return true;
 }
@@ -805,88 +953,32 @@ void specialPowerMenu(int &choice)
     cout << "=====================================================" << endl;
     cout << "Your piece reached the enemy's side!" << endl << endl;
     cout << "Choose a power:" << endl;
-    cout << "  1. RED HAWK   - Jump over 2 opponent pieces" << endl;
-    cout << "  2. FLOW STATE - Become immune to capture (5 turns)" << endl;
+    cout << "  1. RED HAWK   - Jump over 2 opponents + PERMANENT King movement" << endl;
+    cout << "  2. FLOW STATE - Become immune to capture (10 turns)" << endl;
     cout << "  3. SHAMBLES   - Capture opponent 2 spaces away" << endl;
     cout << "-----------------------------------------------------" << endl;
     cout << "Your choice (1-3): ";
     cin  >> choice;
 }
 
-// RED HAWK - Jump over 2 opponent pieces
+// RED HAWK - Permanently activates King movement & Red Hawk jump
 void redHawk(char **board, int size, int row, int col, char player)
 {
-    char opponent = (player == PLAYER_X) ? PLAYER_O : PLAYER_X;
-    int  direction = (player == PLAYER_X) ? -2 : 2;  // X move up, O move down
+    // Mark this piece as having Red Hawk permanently
+    redHawkPieces[row][col] = true;
 
-    cout << "Enter destination column (1-" << size << "): ";
-    int destCol;
-    cin  >> destCol;
-    destCol--;
-
-    int newRow = row + direction;
-    int newCol = destCol;
-
-    // check bounds
-    if (newRow < 0 || newRow >= size || newCol < 0 || newCol >= size)
-    {
-        cout << "Destination out of bounds!" << endl;
-        return;
-    }
-
-    // check destination is empty
-    if (board[newRow][newCol] != EMPTY)
-    {
-        cout << "Destination occupied!" << endl;
-        return;
-    }
-
-    // must move 2 spaces diagonally or straight
-    if (abs(col - newCol) != 2 && abs(col - newCol) != 0)
-    {
-        cout << "Red Hawk requires 2 spaces diagonally or straight!" << endl;
-        return;
-    }
-
-    // check if there are TWO opponent pieces in between
-    int midRow1 = row + (direction / 2);
-    int midCol1 = (col + newCol) / 2;
-    int midRow2 = row + direction;
-    int midCol2 = (col + newCol) / 2;
-
-    if (board[midRow1][midCol1] == opponent && board[midRow2][midCol2] == opponent)
-    {
-        // check if either opponent piece is shielded
-        if (shieldedPieces[midRow1][midCol1] || shieldedPieces[midRow2][midCol2])
-        {
-            cout << "Cannot destroy! A piece is protected by Flow State!" << endl;
-            return;
-        }
-
-        // both are opponents -> capture both
-        board[midRow1][midCol1] = EMPTY;
-        board[midRow2][midCol2] = EMPTY;
-
-        // move the piece
-        board[newRow][newCol] = board[row][col];
-        board[row][col] = EMPTY;
-
-        cout << "RED HAWK! TWO opponent pieces destroyed!" << endl;
-    }
-    else
-    {
-        cout << "Need TWO opponent pieces in the path!" << endl;
-    }
+    cout << "RED HAWK activated permanently on this piece!" << endl;
+    cout << "You can use the Red Hawk jump (over 2 opponents) anytime you move." << endl;
 }
 
-// FLOW STATE - Immune to capture for 5 turns
+// FLOW STATE - Immune to capture for 10 turns (not including current turn)
 void flowState(char **board, int size, int row, int col)
 {
     shieldedPieces[row][col] = true;
-    flowStateTurns[row][col] = 5;       // 5 turns immunity
+    flowStateTurns[row][col] = 11;  // 11 so after switchTurn it becomes 10 for opponent
 
-    cout << "FLOW STATE activated! This piece is immune to capture for 5 turns." << endl;
-    cout << "Your opponent cannot capture this piece for the next 5 turns." << endl;
+    cout << "FLOW STATE activated! This piece is immune to capture for 10 turns." << endl;
+    cout << "Your opponent cannot capture this piece for the next 10 turns." << endl;
 }
 
 // SHAMBLES - Capture opponent 2 spaces away diagonally
