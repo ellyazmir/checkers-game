@@ -30,6 +30,7 @@ const string SAVE_FILENAME = "savegame.txt";
 
 // global tracking for special powers
 bool shieldedPieces[MAX_SIZE][MAX_SIZE] = {false};
+bool promotedPieces[MAX_SIZE][MAX_SIZE] = {false};
 
 void showIntroduction();
 int getBoardSize();
@@ -75,8 +76,6 @@ int main()
 
     showIntroduction();
     showWelcomeMenu();
-
-    cin.ignore();
 
     // Get user choice
     string menuChoice;
@@ -135,6 +134,20 @@ int main()
         string to;
         getMoveInput(from, to, currentPlayer);
 
+        if (from == "SAVE")
+        {
+            saveGameState(board, boardSize, currentPlayer, specialPowersActive);
+            cout << "Game saved!" << endl;
+            continue;  // Skip turn
+        }
+
+        if (from == "QUIT")
+        {
+            cout << "Quitting game..." << endl;
+            deleteBoard(board, boardSize);
+            return 0;  // Exit program
+        }
+
         // coordinate conversion
         int fromRow = 0, fromCol = 0;
         int toRow = 0, toCol = 0;
@@ -165,6 +178,7 @@ int main()
         // special power check
         if (checkForPromotion(board, boardSize, toRow, toCol, currentPlayer))
         {
+            promotedPieces[toRow][toCol] = true;
             int powerChoice;
             specialPowerMenu(powerChoice);
 
@@ -430,6 +444,36 @@ bool isValidMove(char **board, int size, int fromRow, int fromCol,
     rowDifference = toRow - fromRow;
     colDifference = toCol - fromCol;
 
+    if (promotedPieces[fromRow][fromCol])   // #KING PIECE
+    {
+        // normal move: 1 space diagonally (any direction)
+        if (getAbsoluteValue(rowDifference) == 1 && getAbsoluteValue(colDifference) == 1)
+        {
+            return true;
+        }
+
+        // capture move: 2 spaces diagonally (any direction)
+        if (getAbsoluteValue(rowDifference) == 2 && getAbsoluteValue(colDifference) == 2)
+        {
+            midRow = (fromRow + toRow) / 2;
+            midCol = (fromCol + toCol) / 2;
+
+            // FLOW STATE CHECK: Cannot capture shielded piece
+            if (shieldedPieces[midRow][midCol])
+            {
+                cout << "Cannot capture! That piece is protected by Flow State!" << endl;
+                return false;
+            }
+
+            // check if middle piece is opponent
+            if (isOpponentPiece(board[midRow][midCol], player))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
     if (player == PLAYER_X)
     {
         rowDirection = -1;
@@ -448,6 +492,12 @@ bool isValidMove(char **board, int size, int fromRow, int fromCol,
     {
         midRow = (fromRow + toRow) / 2;
         midCol = (fromCol + toCol) / 2;
+
+        if (shieldedPieces[midRow][midCol])
+        {
+            cout << "Cannot capture! That piece is protected by Flow State!" << endl;
+            return false;
+        }
 
         if (isOpponentPiece(board[midRow][midCol], player))
         {
@@ -488,6 +538,12 @@ bool checkAndCapture(char **board, int size, int fromRow, int fromCol,
     {
         midRow = (fromRow + toRow) / 2;
         midCol = (fromCol + toCol) / 2;
+
+        if (shieldedPieces[midRow][midCol])
+        {
+            cout << "Cannot capture! That piece is protected by Flow State!" << endl;
+            return false;  // Block the capture
+        }
 
         if (isOpponentPiece(board[midRow][midCol], player))
         {
@@ -539,10 +595,23 @@ void getMoveInput(string &from, string &to, char currentPlayer)
 {
     cout << endl;
     cout << "Player " << currentPlayer << "'s turn" << endl;
+    cout << "Enter 'SAVE' to save progress, or 'QUIT' to exit." << endl;
     cout << "From (letter + num): ";
     cin  >> from;
-    cout << "To (letter + num): ";
-    cin  >> to;
+
+    // Convert to uppercase to handle 'save', 'Save', or 'SAVE'
+    for (size_t i = 0; i < from.length(); i++) {
+        from[i] = toupper(from[i]);
+    }
+
+    // Only ask for the "To" coordinate if they didn't type a command
+    if (from != "SAVE" && from != "QUIT") {
+        cout << "To (letter + num): ";
+        cin  >> to;
+        for (size_t i = 0; i < to.length(); i++) {
+            to[i] = toupper(to[i]);
+        }
+    }
 }
 
 // this checks if the game has ended
@@ -617,6 +686,16 @@ void saveGameState(char **board, int size, char currentPlayer, bool specialPower
         outFile << "\n";
     }
 
+    // Save promoted pieces status
+    for (int r = 0; r < size; r++)
+    {
+    for (int c = 0; c < size; c++)
+    {
+        outFile << promotedPieces[r][c] << " ";
+    }
+    outFile << "\n";
+}
+
     outFile.close();
     cout << "Game progress recorded successfully.\n";
 }
@@ -647,6 +726,15 @@ bool loadGameState(char **board, int &size, char &currentPlayer, bool specialPow
         for (int c = 0; c < size; c++)
         {
             if (!(inFile >> specialPowersActive[r][c])) return false;
+        }
+    }
+
+    // Read promoted pieces status
+    for (int r = 0; r < size; r++)
+    {
+        for (int c = 0; c < size; c++)
+        {
+            if (!(inFile >> promotedPieces[r][c])) return false;
         }
     }
 
@@ -728,6 +816,13 @@ void redHawk(char **board, int size, int row, int col, char player)
 
     if (board[midRow1][midCol1] == opponent && board[midRow2][midCol2] == opponent)
     {
+        // check if either opponent piece is shielded
+        if (shieldedPieces[midRow1][midCol1] || shieldedPieces[midRow2][midCol2])
+        {
+            cout << "Cannot destroy! A piece is protected by Flow State!" << endl;
+            return;
+        }
+
         // both are opponents -> capture both
         board[midRow1][midCol1] = EMPTY;
         board[midRow2][midCol2] = EMPTY;
@@ -766,6 +861,13 @@ void shambles(char **board, int size, int row, int col, char player)
 
         if (targetRow >= 0 && targetRow < size && targetCol >= 0 && targetCol < size)
         {
+            // Check if target is shielded
+            if (shieldedPieces[targetRow][targetCol])
+            {
+                cout << "Cannot destroy! That piece is protected by Flow State!" << endl;
+                continue;  // skip this target
+            }
+
             if (board[targetRow][targetCol] == opponent)
             {
                 board[targetRow][targetCol] = EMPTY;
