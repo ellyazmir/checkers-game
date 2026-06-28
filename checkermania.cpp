@@ -487,7 +487,7 @@ bool isValidMove(char **board, int size, int fromRow, int fromCol,
                     // Capture opponent piece (throw out)
                     board[checkRow][checkCol] = EMPTY;
                     capturedAny = true;
-                    cout << "🔥 Red Hawk destroyed opponent at " 
+                    cout << "Red Hawk destroyed opponent at " 
                          << char('A' + checkRow) << (checkCol + 1) << "!" << endl;
                 }
                 else
