@@ -1,13 +1,13 @@
 /*
 Program: checkermania.cpp
 Course: CCP6114 Programming Fundamentals
-Lecture Class: TC2L 
-Tutorial Class: TT7L 
+Lecture Class: TC2L
+Tutorial Class: TT7L
 Trimester: 2610
 Information: 252UC241RN ELLY MAZLIN BINTI MOHD AZMIR  ELLY.MAZLIN.MOHD1@student.mmu.edu.my        0126623767
              261UC250J4 BRYAN WONG KAI JIE            BRYAN.WONG.KAI1@student.mmu.edu.my          0143331772
              261UC2432G LIM GUAN XU                   LIM.GUAN.XU2@student.mmu.edu.my             0165151547
-             252UC241Q6 TRISHA ADELINA BINTI SHUHAINI TRISHA.ADELINA.SHUHAINI1@student.mmu.edu.my 0196458508 
+             252UC241Q6 TRISHA ADELINA BINTI SHUHAINI TRISHA.ADELINA.SHUHAINI1@student.mmu.edu.my 0196458508
 */
 
 #include <iomanip>
@@ -67,7 +67,6 @@ int main()
     showIntroduction();
     showWelcomeMenu();
 
-    cin.ignore();
 
     // Get user choice
     string menuChoice;
@@ -78,6 +77,7 @@ int main()
     {
         menuChoice[i] = toupper(menuChoice[i]);
     }
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
 
     if (menuChoice == "CONTINUE")
     {
@@ -86,7 +86,7 @@ int main()
             cout << "File save found. Loading state..." << endl;
             // Create max-size just in case
             board = createBoard(MAX_SIZE);
-            
+
             if (loadGameState(board, boardSize, currentPlayer, specialPowersActive))
             {
                 cout << "Game loaded successfully!" << endl;
@@ -117,14 +117,39 @@ int main()
         currentPlayer = PLAYER_X;
         displayBoard(board, boardSize);
     }
-    
+
     // game setup
-    while (!isGameOver(board, boardSize, currentPlayer))
+   while (!isGameOver(board, boardSize, currentPlayer))
     {
         // player move input
-        string from;
-        string to;
+        string from = "";
+        string to = "";
         getMoveInput(from, to, currentPlayer);
+
+        // =================================================================
+        // MID-GAME COMMAND INTERCEPTION
+        // =================================================================
+        if (from == "QUIT")
+        {
+            cout << "Exiting game. Goodbye!" << endl;
+            break; // Breaks out of the loop a
+        }
+
+        if (from == "SAVE")
+        {
+            // Sync current active special powers array before writing to file
+            for (int r = 0; r < boardSize; r++) {
+                for (int c = 0; c < boardSize; c++) {
+                    specialPowersActive[r][c] = shieldedPieces[r][c];
+                }
+            }
+
+            saveGameState(board, boardSize, currentPlayer, specialPowersActive);
+            cout << "\nGame state saved successfully! Continuous play allowed." << endl;
+            displayBoard(board, boardSize);
+            continue; // Skip move validation and let the same player take their actual move
+        }
+        // =================================================================
 
         // coordinate conversion
         int fromRow = 0, fromCol = 0;
@@ -372,10 +397,23 @@ void getMoveInput(string &from, string &to, char currentPlayer)
 {
     cout << endl;
     cout << "Player " << currentPlayer << "'s turn" << endl;
+    cout << "Enter 'SAVE' to save progress, or 'QUIT' to exit." << endl;
     cout << "From (letter + num): ";
     cin  >> from;
-    cout << "To (letter + num): ";
-    cin  >> to;
+
+    // Convert to uppercase to handle 'save', 'Save', or 'SAVE'
+    for (size_t i = 0; i < from.length(); i++) {
+        from[i] = toupper(from[i]);
+    }
+
+    // Only ask for the "To" coordinate if they didn't type a command
+    if (from != "SAVE" && from != "QUIT") {
+        cout << "To (letter + num): ";
+        cin  >> to;
+        for (size_t i = 0; i < to.length(); i++) {
+            to[i] = toupper(to[i]);
+        }
+    }
 }
 
 // this checks if the game has ended
@@ -571,7 +609,7 @@ void redHawk(char **board, int size, int row, int col, char player)
 
         cout << "RED HAWK! TWO opponent pieces destroyed!" << endl;
     }
-    
+
     else
     {
         cout << "Need TWO opponent pieces in the path!" << endl;
